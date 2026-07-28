@@ -8,6 +8,7 @@ XLSX_FILE = 'data.xlsx'
 DB_FILE = 'data.db'
 TABLE_NAME = 'students'
 FTS_TABLE_NAME = 'students_fts'
+DEGREE_STATS_TABLE_NAME = 'degree_stats'
 SEATING_NO_COL = 'seating_no'
 NAME_COL = 'name'
 DEGREE_COL = 'degree'
@@ -85,6 +86,25 @@ def create_database(dataframe, db_file):
             f"INSERT INTO {FTS_TABLE_NAME}(rowid, {NORMALIZED_NAME_COL}) "
             f"SELECT {SEATING_NO_COL}, {NORMALIZED_NAME_COL} "
             f"FROM {TABLE_NAME};"
+        )
+
+        print("Creating degree distribution for admission predictions...")
+        conn.execute(f"DROP TABLE IF EXISTS {DEGREE_STATS_TABLE_NAME};")
+        conn.execute(
+            f"CREATE TABLE {DEGREE_STATS_TABLE_NAME} AS "
+            f"WITH score_counts AS ("
+            f"SELECT {DEGREE_COL} AS degree, COUNT(*) AS student_count "
+            f"FROM {TABLE_NAME} GROUP BY {DEGREE_COL}"
+            f") "
+            f"SELECT degree, student_count, "
+            f"SUM(student_count) OVER (ORDER BY degree DESC) "
+            f"- student_count + 1 AS rank_start, "
+            f"SUM(student_count) OVER (ORDER BY degree DESC) AS rank_end "
+            f"FROM score_counts;"
+        )
+        conn.execute(
+            f"CREATE UNIQUE INDEX idx_degree_stats_degree "
+            f"ON {DEGREE_STATS_TABLE_NAME} (degree);"
         )
         conn.execute("ANALYZE;")
 

@@ -49,6 +49,7 @@ async function fetchResults() {
                 <p><strong>رقم الجلوس:</strong> ${r['رقم الجلوس']}</p>
                 <p><strong>الدرجة:</strong> ${r['الدرجة']} | <strong>النسبة:</strong> ${(r['الدرجة'] / totalDegree * 100).toFixed(2)}%</p>
                 <p><strong>الحالة:</strong> ${r.student_case_desc}</p>
+                ${r.student_case_desc.includes('ناجح') ? `<a class="prediction-link" href="/predict?seating_no=${encodeURIComponent(r['رقم الجلوس'])}">توقع الكليات المناسبة ←</a>` : ''}
             </div>
         `).join('');
 

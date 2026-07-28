@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="مؤشر استرشادي لتنسيق الجامعات المصرية 2026 من رقم الجلوس أو المجموع.">
+    <title>توقع كليتك | تنسيق {{ results_year }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/predict.css') }}">
+</head>
+<body data-total-degree="{{ total_degree }}">
+    <a class="skip-link" href="#prediction-form">انتقل إلى الحاسبة</a>
+
+    <header class="site-header">
+        <a class="brand" href="/">
+            <span class="brand-mark" aria-hidden="true">ن</span>
+            <span>نتيجة {{ results_year }}</span>
+        </a>
+        <nav aria-label="التنقل الرئيسي">
+            <a href="/">النتيجة</a>
+            <a href="/predict" aria-current="page">توقع الكلية</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="intro" aria-labelledby="page-title">
+            <p class="eyebrow">مؤشر تنسيق 2026</p>
+            <h1 id="page-title">اعرف أقرب كلياتك</h1>
+            <p>رقم جلوس أو مجموع، ثم اختر الشعبة.</p>
+        </section>
+
+        <section class="calculator">
+            <form id="prediction-form" novalidate>
+                <fieldset class="mode-picker">
+                    <legend>هتدخل نتيجتك إزاي؟</legend>
+                    <div class="segmented-control">
+                        <label>
+                            <input type="radio" name="input_mode" value="seating" checked>
+                            <span>رقم الجلوس</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="input_mode" value="score">
+                            <span>المجموع مباشرة</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="input-panel" data-input-panel="seating">
+                    <label for="seating-no">رقم الجلوس</label>
+                    <input
+                        id="seating-no"
+                        name="seating_no"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        pattern="[0-9]+"
+                        placeholder="2001970"
+                        aria-describedby="result-input-hint"
+                    >
+                </div>
+
+                <div class="input-panel" data-input-panel="score" hidden>
+                    <label for="score">المجموع</label>
+                    <div class="score-input">
+                        <input
+                            id="score"
+                            name="score"
+                            type="text"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            placeholder="مثال: 290"
+                            aria-describedby="result-input-hint"
+                            disabled
+                        >
+                        <span>من 320</span>
+                    </div>
+                </div>
+                <p id="result-input-hint" class="field-hint">المجموع الجديد للنظام الحديث هو 320 درجة.</p>
+
+                <fieldset class="track-picker">
+                    <legend>اختر الشعبة</legend>
+                    <div class="choice-row">
+                        <label class="choice">
+                            <input type="radio" name="track" value="science" required>
+                            <span>علمي علوم</span>
+                        </label>
+                        <label class="choice">
+                            <input type="radio" name="track" value="math">
+                            <span>علمي رياضة</span>
+                        </label>
+                        <label class="choice">
+                            <input type="radio" name="track" value="literary">
+                            <span>أدبي</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <label class="institute-toggle">
+                    <input id="include-institutes" type="checkbox">
+                    <span aria-hidden="true"></span>
+                    أظهر المعاهد أيضًا
+                </label>
+
+                <button id="predict-button" type="submit">
+                    <span>اعرض الكليات المتوقعة</span>
+                    <span aria-hidden="true">←</span>
+                </button>
+
+                <div id="form-error" class="form-error" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
+            </form>
+        </section>
+
+        <section id="loading-state" class="loading-state" aria-live="polite" hidden>
+            <span></span>
+            <p>بنحسب موقع الدرجة…</p>
+        </section>
+
+        <section id="prediction-result" class="prediction-result" aria-live="polite" hidden>
+            <header class="result-summary">
+                <div>
+                    <p id="student-context" class="eyebrow"></p>
+                    <h2 id="student-name"></h2>
+                    <p id="student-meta"></p>
+                </div>
+                <div class="score-summary">
+                    <strong id="student-score"></strong>
+                    <span>/ 320</span>
+                    <small id="student-percentage"></small>
+                </div>
+            </header>
+
+            <div class="rank-summary">
+                <span>
+                    ترتيب مجموعك بين نتائج 2026
+                    <span
+                        class="help-tip"
+                        tabindex="0"
+                        aria-label="ترتيب تقريبي بين كل النتائج الموجودة في ملف 2026، وليس عدد المقاعد ولا ترتيب الشعبة الرسمي."
+                        data-tooltip="ترتيب تقريبي بين كل النتائج الموجودة في ملف 2026، وليس عدد المقاعد ولا ترتيب الشعبة الرسمي."
+                    >؟</span>
+                </span>
+                <strong id="student-rank"></strong>
+                <small id="rank-note"></small>
+            </div>
+
+            <div class="results-heading">
+                <div>
+                    <p class="eyebrow">النتيجة المتوقعة</p>
+                    <h2>ابدأ بالفرص القوية</h2>
+                </div>
+                <span id="track-summary"></span>
+            </div>
+
+            <details class="calculation-guide">
+                <summary>كيف حسبنا مؤشر 2026؟</summary>
+                <p>
+                    أخذنا الحد الأدنى الرسمي للكلية في 2025، وحددنا ترتيبه بين
+                    نتائج 2025، ثم وجدنا الدرجة الموجودة عند نفس الترتيب في نتائج
+                    2026. النتيجة مؤشر تقريبي وليست تنسيقًا رسميًا.
+                </p>
+            </details>
+
+            <div id="prediction-bands" class="prediction-bands"></div>
+
+            <details class="references">
+                <summary>الأرقام دي جاية منين؟</summary>
+                <div class="reference-content">
+                    <dl>
+                        <div>
+                            <dt>320</dt>
+                            <dd>إجمالي درجات الثانوية العامة نظام حديث 2026</dd>
+                        </div>
+                        <div>
+                            <dt id="cohort-size">—</dt>
+                            <dd>سجل نتيجة داخل ملف 2026 المستخدم للحساب</dd>
+                        </div>
+                        <div>
+                            <dt id="reference-count">—</dt>
+                            <dd>حد أدنى رسمي من تنسيق 2025</dd>
+                        </div>
+                    </dl>
+                    <p id="method-explanation"></p>
+                    <div id="source-links" class="source-links"></div>
+                </div>
+            </details>
+
+            <p id="prediction-disclaimer" class="prediction-disclaimer"></p>
+        </section>
+    </main>
+
+    <footer>
+        <span>مؤشر استرشادي مستقل، وليس ترشيح مكتب التنسيق.</span>
+        <a href="/">العودة إلى النتيجة</a>
+    </footer>
+
+    <noscript>فعّل JavaScript لاستخدام مؤشر التنسيق.</noscript>
+    <script src="{{ url_for('static', filename='js/predict.js') }}"></script>
+</body>
+</html>

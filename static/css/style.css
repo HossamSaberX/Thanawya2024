@@ -45,8 +45,16 @@ h1 {
 
 .notation {
     color: var(--secondary-text);
-    margin-bottom: 30px;
+    margin-bottom: 14px;
     font-size: 1rem;
+}
+
+.prediction-entry {
+    display: inline-block;
+    margin-bottom: 30px;
+    color: var(--accent-color);
+    font-weight: 700;
+    text-underline-offset: 4px;
 }
 
 .search-form {
@@ -118,6 +126,14 @@ button:hover {
     margin-bottom: 5px;
 }
 
+.prediction-link {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--accent-color);
+    font-weight: 700;
+    text-underline-offset: 4px;
+}
+
 .loader {
     display: none;
     margin: 30px auto;
@@ -177,4 +193,4 @@ button:hover {
     .search-form {
         flex-direction: column;
     }
-} 
+}
