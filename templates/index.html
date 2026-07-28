@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نتيجة الثانوية العامة 2025</title>
+    <title>نتيجة الثانوية العامة {{ results_year }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body data-total-degree="{{ total_degree }}">
     <div class="container">
-        <h1>نتيجة الثانوية العامة 2025</h1>
+        <h1>نتيجة الثانوية العامة {{ results_year }}</h1>
         <div class="notation">
             ابحث بالاسم أو رقم الجلوس
         </div>

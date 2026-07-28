@@ -1,9 +1,13 @@
-
 from flask import Flask, request, jsonify, render_template, g
 import sqlite3
 from flask_caching import Cache
 import hashlib
-from utils import normalize_arabic, format_student_result
+from utils import (
+    RESULTS_YEAR,
+    TOTAL_DEGREE,
+    format_student_result,
+    normalize_arabic,
+)
 import os
 
 app = Flask(__name__)
@@ -41,11 +45,16 @@ def make_cache_key():
     query = request.args.get('query')
     page = request.args.get('page', 1)
     key_str = f"query={query}&page={page}"
+    key_str = f"year={RESULTS_YEAR}&{key_str}"
     return hashlib.md5(key_str.encode()).hexdigest()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template(
+        'index.html',
+        results_year=RESULTS_YEAR,
+        total_degree=TOTAL_DEGREE,
+    )
 
 @app.route('/search', methods=['GET'])
 @cache.cached(timeout=86400, key_prefix=make_cache_key)
@@ -80,7 +89,9 @@ def search():
                     results_list.append(format_student_result(row))
     return jsonify({
         "results": results_list,
-        "total_results": total_results
+        "total_results": total_results,
+        "results_year": RESULTS_YEAR,
+        "total_degree": TOTAL_DEGREE,
     })
 
 if __name__ == '__main__':

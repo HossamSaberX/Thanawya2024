@@ -2,6 +2,7 @@ let currentPage = 1;
 let currentQuery = '';
 let totalResults = 0;
 const perPage = 10;
+const totalDegree = Number(document.body.dataset.totalDegree) || 320;
 
 function performSearch() {
     const query = document.getElementById('query').value;
@@ -46,7 +47,8 @@ async function fetchResults() {
             <div class="result ${r.student_case_desc.includes('ناجح') ? 'success' : 'failure'}">
                 <p><strong>الاسم:</strong> ${r['الاسم']}</p>
                 <p><strong>رقم الجلوس:</strong> ${r['رقم الجلوس']}</p>
-                <p><strong>الدرجة:</strong> ${r['الدرجة']} | <strong>النسبة:</strong> ${(r['الدرجة'] / 320 * 100).toFixed(2)}%</p>
+                <p><strong>الدرجة:</strong> ${r['الدرجة']} | <strong>النسبة:</strong> ${(r['الدرجة'] / totalDegree * 100).toFixed(2)}%</p>
+                <p><strong>الحالة:</strong> ${r.student_case_desc}</p>
             </div>
         `).join('');
 
@@ -63,4 +65,4 @@ async function fetchResults() {
             }
         }
     }
-} 
+}

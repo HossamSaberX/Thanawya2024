@@ -1,6 +1,7 @@
 import pandas as pd
 import sqlite3
-from utils import normalize_arabic
+from pathlib import Path
+from utils import RESULTS_YEAR, TOTAL_DEGREE, normalize_arabic
 
 # Configuration
 XLSX_FILE = 'data.xlsx'
@@ -10,39 +11,95 @@ FTS_TABLE_NAME = 'students_fts'
 SEATING_NO_COL = 'seating_no'
 NAME_COL = 'name'
 DEGREE_COL = 'degree'
+STATUS_COL = 'student_case_desc'
 NORMALIZED_NAME_COL = 'normalized_name'
+SOURCE_COLUMNS = {
+    'seating_no',
+    'arabic_name',
+    'total_degree',
+    STATUS_COL,
+}
 
-# --- 1. Load and prepare the data from Excel ---
-df = pd.read_excel(XLSX_FILE)
-df.rename(columns={
-    'seating_no': SEATING_NO_COL,
-    'arabic_name': NAME_COL,
-    'total_degree': DEGREE_COL
-}, inplace=True)
-df[NORMALIZED_NAME_COL] = df[NAME_COL].apply(normalize_arabic)
 
-# --- 2. Create the database connection ---
-conn = sqlite3.connect(DB_FILE)
-cur = conn.cursor()
+def load_students(xlsx_file):
+    df = pd.read_excel(xlsx_file)
+    missing_columns = SOURCE_COLUMNS.difference(df.columns)
+    if missing_columns:
+        missing = ', '.join(sorted(missing_columns))
+        raise ValueError(f"Missing required Excel columns: {missing}")
 
-# --- 3. Create the main students table and its index ---
-db_df = df[[SEATING_NO_COL, NAME_COL, DEGREE_COL, NORMALIZED_NAME_COL]].copy()
-db_df.to_sql(TABLE_NAME, conn, if_exists='replace', index=False)
+    df.rename(columns={
+        'seating_no': SEATING_NO_COL,
+        'arabic_name': NAME_COL,
+        'total_degree': DEGREE_COL,
+    }, inplace=True)
 
-print("Creating index for seating numbers...")
-conn.execute(f'CREATE INDEX idx_seating_no ON {TABLE_NAME} ({SEATING_NO_COL});')
+    required_values = [SEATING_NO_COL, NAME_COL, DEGREE_COL, STATUS_COL]
+    if df[required_values].isna().any().any():
+        raise ValueError("The Excel file contains missing student values")
+    if df[SEATING_NO_COL].duplicated().any():
+        raise ValueError("The Excel file contains duplicate seating numbers")
+    if not df[DEGREE_COL].between(0, TOTAL_DEGREE).all():
+        raise ValueError(
+            f"Student degrees must be between 0 and {TOTAL_DEGREE}"
+        )
 
-# --- 4. Create and populate the FTS5 virtual table for fast name searching ---
-print("Creating FTS5 virtual table for name search...")
-cur.execute(f"DROP TABLE IF EXISTS {FTS_TABLE_NAME};")
-# content_rowid links the FTS table back to the main table's seating_no
-cur.execute(f"CREATE VIRTUAL TABLE {FTS_TABLE_NAME} USING fts5({NORMALIZED_NAME_COL}, content='{TABLE_NAME}', content_rowid='{SEATING_NO_COL}');")
+    df[NAME_COL] = df[NAME_COL].astype(str).str.strip()
+    df[STATUS_COL] = df[STATUS_COL].astype(str).str.strip()
+    df[NORMALIZED_NAME_COL] = df[NAME_COL].apply(normalize_arabic)
+    return df[
+        [
+            SEATING_NO_COL,
+            NAME_COL,
+            DEGREE_COL,
+            STATUS_COL,
+            NORMALIZED_NAME_COL,
+        ]
+    ].copy()
 
-print("Populating FTS5 table...")
-# This populates the FTS index with all the names from the main table
-cur.execute(f"INSERT INTO {FTS_TABLE_NAME}(rowid, {NORMALIZED_NAME_COL}) SELECT {SEATING_NO_COL}, {NORMALIZED_NAME_COL} FROM {TABLE_NAME};")
 
-conn.commit()
-conn.close()
+def create_database(dataframe, db_file):
+    db_path = Path(db_file)
+    temporary_db_path = db_path.with_suffix(f"{db_path.suffix}.tmp")
 
-print("\nDatabase and FTS index created successfully as data.db")
+    with sqlite3.connect(temporary_db_path) as conn:
+        dataframe.to_sql(TABLE_NAME, conn, if_exists='replace', index=False)
+
+        print("Creating index for seating numbers...")
+        conn.execute(
+            f'CREATE UNIQUE INDEX idx_seating_no '
+            f'ON {TABLE_NAME} ({SEATING_NO_COL});'
+        )
+
+        print("Creating FTS5 virtual table for name search...")
+        conn.execute(f"DROP TABLE IF EXISTS {FTS_TABLE_NAME};")
+        # Keep the existing FTS search mechanism and link it by seating number.
+        conn.execute(
+            f"CREATE VIRTUAL TABLE {FTS_TABLE_NAME} USING fts5("
+            f"{NORMALIZED_NAME_COL}, content='{TABLE_NAME}', "
+            f"content_rowid='{SEATING_NO_COL}');"
+        )
+
+        print("Populating FTS5 table...")
+        conn.execute(
+            f"INSERT INTO {FTS_TABLE_NAME}(rowid, {NORMALIZED_NAME_COL}) "
+            f"SELECT {SEATING_NO_COL}, {NORMALIZED_NAME_COL} "
+            f"FROM {TABLE_NAME};"
+        )
+        conn.execute("ANALYZE;")
+
+    temporary_db_path.replace(db_path)
+
+
+def main():
+    dataframe = load_students(XLSX_FILE)
+    create_database(dataframe, DB_FILE)
+    print(
+        f"\nDatabase and FTS index created successfully as {DB_FILE}: "
+        f"{len(dataframe):,} students, {RESULTS_YEAR} results, "
+        f"{TOTAL_DEGREE} total degree"
+    )
+
+
+if __name__ == '__main__':
+    main()
